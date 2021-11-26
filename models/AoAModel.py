@@ -13,10 +13,11 @@ import misc.utils as utils
 from .AttModel import pack_wrapper, AttModel, Attention
 from .TransformerModel import LayerNorm, attention, clones, SublayerConnection, PositionwiseFeedForward
 
-class MultiHeadedDotAttention(nn.Module):
-    def __init__(self, h, d_model, dropout=0.1, scale=1, project_k_v=1, use_output_layer=1, do_aoa=0, norm_q=0, dropout_aoa=0.3):
+class MultiHeadedDotAttention(nn.Module):  
+    # 把网络中具有可学习参数的层放在构造函数__init__中
+    def __init__(self, h, d_model, dropout=0.1, scale=1, project_k_v=1, use_output_layer=1, do_aoa=0, norm_q=0, dropout_aoa=0.3):  
         super(MultiHeadedDotAttention, self).__init__()
-        assert d_model * scale % h == 0
+        assert d_model * scale % h == 0  # 断言，不符合将不执行后面的代码
         # We assume d_v always equals d_k
         self.d_k = d_model * scale // h
         self.h = h
@@ -37,9 +38,15 @@ class MultiHeadedDotAttention(nn.Module):
         # apply aoa after attention?
         self.use_aoa = do_aoa
         if self.use_aoa:
+            # linear用于设置网络中的全连接层，[batch_size, size]
+            # GLU，门控线性单元，降低梯度弥散，保留非线性的能力
+            # sequential，将一系列操作打包，方便forward使用
             self.aoa_layer =  nn.Sequential(nn.Linear((1 + scale) * d_model, 2 * d_model), nn.GLU())
             # dropout to the input of AoA layer
-            if dropout_aoa > 0:
+            if dropout_aoa > 0:  
+                # nn.dropout()是为了防止或减轻过拟合而使用的函数，它一般用在全连接层，
+                # 在不同的训练过程中随机扔掉一部分神经元，
+                # 参数p表示被丢掉的神经元的比例。
                 self.dropout_aoa = nn.Dropout(p=dropout_aoa)
             else:
                 self.dropout_aoa = lambda x:x
